@@ -32,9 +32,20 @@ my $anp = Genome::Config::AnalysisProject->get('95d17b80014a403da1f65f077b7e42b4
 my $pp = Genome::ProcessingProfile->get('90e070e59516450c860a7d9bde3d13f7');
 
 my @models = Genome::Model->get(analysis_project => $anp, processing_profile => $pp, 'subject.name' => \@sample_names);
-my @builds = map { $_->last_succeeded_build } @models;
+my @builds;
+for my $model (@models) {
+    my $build = $model->last_succeeded_build;
+    if($build) {
+        push @builds, $build;
+    }
+    else {
+        warn "Unable to find succeeded build for model ", $model->name,"\n";
+    }
+}
+
+#my @builds = map { $_->last_succeeded_build } @models;
 for my $build (@builds) {
-    delete $sample_name_requested{$_->subject->name};
+    delete $sample_name_requested{$build->subject->name};
     print join("\t", $build->id, $build->merged_alignment_result->bam_path), "\n";
 }
 
