@@ -15,4 +15,5 @@ my $object = Genome::Model::ReferenceSequence::Command::CreateBuckets->execute(
     requestor => $build,
 );
 
+UR::Context->commit();
 print Dumper $object->output_result;
