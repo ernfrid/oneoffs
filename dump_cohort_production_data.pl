@@ -4,11 +4,13 @@ use strict;
 use warnings;
 
 use Genome;
+use Set::Scalar;
+use Data::Dumper;
 
 my @anp_ids = @ARGV;
 my @anps = Genome::Config::AnalysisProject->get(id => \@anp_ids);
 
-print join("\t", qw(Sample Analysis_Project Model Build Primary_flowcell Primary_date Primary_machine All_flowcells nLanes nFlowcells Freemix Median_Insert_Size MAD_Insert_Size Mean_Insert_Size SD_Insert_Size GC_Dropout AT_Dropout Flagstat_Duplication_Rate)), "\n";
+print join("\t", qw(Sample Analysis_Project Model Build Primary_flowcell Primary_date Primary_machine All_flowcells nLanes nFlowcells Freemix Median_Insert_Size MAD_Insert_Size Mean_Insert_Size SD_Insert_Size GC_Dropout AT_Dropout Flagstat_Duplication_Rate Mean_Coverage Picard_Mismatch_Rate Picard_HQ_Error_Rate Picard_Indel_Rate Read2_Picard_Mismatch_Rate Read2_Picard_HQ_Error_Rate Read2_Picard_Indel_Rate Read2_Picard_Mismatch_Rate Read2_Picard_HQ_Error_Rate Read2_Picard_Indel_Rate)), "\n";
 
 for my $anp (@anps) {
     my @models = Genome::Model->get(analysis_project => $anp, 'config_profile_item.tag_names' => 'production qc') or die "Unable to get a models for ", $anp->name, "\n";
@@ -24,7 +26,7 @@ for my $anp (@anps) {
         my $primary_machine = key_for_flowcell($machines, $primary);
         my $fm = freemix($model);
         my @instrument_data = $model->instrument_data;
-        print join("\t", $model->subject->name, $anp->name, $model->id, $model->last_succeeded_build->id, $primary, $primary_date, $primary_machine, join(",", keys %$flowcells), scalar(@instrument_data), scalar(keys %$flowcells), $fm, insert_size_metrics($model), gc_bias_metrics($model), flagstat_duplication_rate($model)), "\n";
+        print join("\t", $model->subject->name, $anp->name, $model->id, $model->last_succeeded_build->id, $primary, $primary_date, $primary_machine, join(",", keys %$flowcells), scalar(@instrument_data), scalar(keys %$flowcells), $fm, insert_size_metrics($model), gc_bias_metrics($model), flagstat_duplication_rate($model), coverage($model), mismatch_rate_metrics($model)), "\n";
     }
 }
 
@@ -32,14 +34,17 @@ sub qc_metrics_hash {
     my ($model) = @_;
     my $build = $model->last_succeeded_build;
     return undef unless $build;
-    my @qc_results = grep {$_->isa('Genome::Qc::Result')} $build->results;
-    if (@qc_results == 1) {
-        my %metrics = $qc_results[0]->get_unflattened_metrics;
+    my $qc_results = Set::Scalar->new();
+    $qc_results->insert(grep {$_->isa('Genome::Qc::Result')} $build->results);
+    if ($qc_results->size == 1) {
+        my ($result) = $qc_results->members;
+        my %metrics = $result->get_unflattened_metrics;
         return \%metrics;
     }
     else {
-        warn "More than one set of QC, not sure yet what this means\n";
-        return undef;
+        warn "More than one set of unique QC results, not sure yet what this means\n";
+        print Dumper $qc_results;
+        die;
     }
 }
 
@@ -48,12 +53,25 @@ sub gc_bias_metrics {
     my $metrics = qc_metrics_hash($model) or return undef;
     return @{$metrics}{qw( GC_DROPOUT AT_DROPOUT )},
 }
-    
 
 sub insert_size_metrics {
     my ($model) = @_;
     my $metrics = qc_metrics_hash($model) or return undef;
     return @{$metrics->{'FR'}}{qw( MEDIAN_INSERT_SIZE MEDIAN_ABSOLUTE_DEVIATION MEAN_INSERT_SIZE STANDARD_DEVIATION ) };
+}
+
+sub coverage {
+    my ($model) = @_;
+    my $metrics = qc_metrics_hash($model) or return undef;
+    return $metrics->{'MEAN_COVERAGE'};
+}
+
+sub mismatch_rate_metrics {
+    my ($model) = @_;
+    my $metrics = qc_metrics_hash($model) or return undef;
+    return (@{$metrics->{'PAIR'}}{ qw( PF_MISMATCH_RATE PF_HQ_ERROR_RATE PF_INDEL_RATE ) },
+        @{$metrics->{'FIRST_OF_PAIR'}}{ qw( PF_MISMATCH_RATE PF_HQ_ERROR_RATE PF_INDEL_RATE ) },
+        @{$metrics->{'SECOND_OF_PAIR'}}{ qw( PF_MISMATCH_RATE PF_HQ_ERROR_RATE PF_INDEL_RATE ) });
 }
 
 sub flagstat_duplication_rate {
