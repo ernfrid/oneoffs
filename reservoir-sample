@@ -1,0 +1,39 @@
+#!/usr/bin/env python
+
+import sys
+import random
+import argparse
+
+class ReservoirSampler(object):
+
+    def __init__(self, k):
+        self.k = k
+        self.reservoir = [ None ] * k
+        self.line_number = 0
+
+    def process(self, line):
+        self.line_number += 1
+        if self.line_number <= self.k:
+            self.reservoir[self.line_number - 1] = line
+        else:
+            j = random.randint(1, self.line_number)
+            if j <= self.k:
+                self.reservoir[j - 1] = line
+
+    def write(self, stream):
+        for line in self.reservoir:
+            stream.write(line)
+
+def main():
+    parser = argparse.ArgumentParser(description='User reservoir sampling to pick random lines from a file')
+    parser.add_argument('-n', '--number', metavar='<INT>', type=int, dest='k', required=True, help='number of lines to pick from the file')
+    args = parser.parse_args()
+    sampler = ReservoirSampler(args.k)
+
+    for line in sys.stdin:
+        sampler.process(line)
+
+    sampler.write(sys.stdout)
+
+if __name__ == '__main__':
+    main()
