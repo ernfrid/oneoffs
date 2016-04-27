@@ -10,7 +10,7 @@ use Data::Dumper;
 my @anp_ids = @ARGV;
 my @anps = Genome::Config::AnalysisProject->get(id => \@anp_ids);
 
-print join("\t", qw(Sample Analysis_Project Model Build Primary_flowcell Primary_date Primary_machine All_flowcells nLanes nFlowcells Freemix Median_Insert_Size MAD_Insert_Size Mean_Insert_Size SD_Insert_Size GC_Dropout AT_Dropout Flagstat_Duplication_Rate Mean_Coverage Picard_Mismatch_Rate Picard_HQ_Error_Rate Picard_Indel_Rate Read1_Picard_Mismatch_Rate Read1_Picard_HQ_Error_Rate Read1_Picard_Indel_Rate Read2_Picard_Mismatch_Rate Read2_Picard_HQ_Error_Rate Read2_Picard_Indel_Rate)), "\n";
+print join("\t", qw(Sample Analysis_Project Model Build Primary_flowcell Primary_date Primary_machine All_flowcells nLanes nFlowcells Freemix Median_Insert_Size MAD_Insert_Size Mean_Insert_Size SD_Insert_Size GC_Dropout AT_Dropout Flagstat_Duplication_Rate Mean_Coverage Picard_Mismatch_Rate Picard_HQ_Error_Rate Picard_Indel_Rate Read1_Picard_Mismatch_Rate Read1_Picard_HQ_Error_Rate Read1_Picard_Indel_Rate Read2_Picard_Mismatch_Rate Read2_Picard_HQ_Error_Rate Read2_Picard_Indel_Rate Picard_Percent_Reads_Aligned Picard_Percent_Reads_Aligned_In_Pairs Picard_Percent_Adapter Picard_Percent_Chimeras Flagstat_Percentage_Proper_Pair Flagstat_Percentage_Interchromosomal_Pair)), "\n";
 
 for my $anp (@anps) {
     my @models = Genome::Model->get(analysis_project => $anp, 'config_profile_item.tag_names' => 'production qc') or die "Unable to get a models for ", $anp->name, "\n";
@@ -26,7 +26,7 @@ for my $anp (@anps) {
         my $primary_machine = key_for_flowcell($machines, $primary);
         my $fm = freemix($model);
         my @instrument_data = $model->instrument_data;
-        print join("\t", $model->subject->name, $anp->name, $model->id, $model->last_succeeded_build->id, $primary, $primary_date, $primary_machine, join(",", keys %$flowcells), scalar(@instrument_data), scalar(keys %$flowcells), $fm, insert_size_metrics($model), gc_bias_metrics($model), flagstat_duplication_rate($model), coverage($model), mismatch_rate_metrics($model)), "\n";
+        print join("\t", $model->subject->name, $anp->name, $model->id, $model->last_succeeded_build->id, $primary, $primary_date, $primary_machine, join(",", keys %$flowcells), scalar(@instrument_data), scalar(keys %$flowcells), $fm, insert_size_metrics($model), gc_bias_metrics($model), flagstat_duplication_rate($model), coverage($model), mismatch_rate_metrics($model), alignment_metrics($model), flagstat_alignment_metrics($model)), "\n";
     }
 }
 
@@ -72,6 +72,18 @@ sub mismatch_rate_metrics {
     return (@{$metrics->{'PAIR'}}{ qw( PF_MISMATCH_RATE PF_HQ_ERROR_RATE PF_INDEL_RATE ) },
         @{$metrics->{'FIRST_OF_PAIR'}}{ qw( PF_MISMATCH_RATE PF_HQ_ERROR_RATE PF_INDEL_RATE ) },
         @{$metrics->{'SECOND_OF_PAIR'}}{ qw( PF_MISMATCH_RATE PF_HQ_ERROR_RATE PF_INDEL_RATE ) });
+}
+
+sub alignment_metrics {
+    my ($model) = @_;
+    my $metrics = qc_metrics_hash($model) or return undef;
+    return (@{$metrics->{'PAIR'}}{ qw( PCT_PF_READS_ALIGNED PCT_READS_ALIGNED_IN_PAIRS PCT_ADAPTER PCT_CHIMERAS ) })
+}
+
+sub flagstat_alignment_metrics {
+    my ($model) = @_;
+    my $metrics = qc_metrics_hash($model) or return undef;
+    return (@{$metrics}{ qw( reads_mapped_in_proper_pairs_percentage reads_mapped_in_interchromosomal_pairs_percentage ) })
 }
 
 sub flagstat_duplication_rate {
@@ -139,7 +151,8 @@ sub _illumina_machine_serial_number {
         && defined $machine
         && defined $run_id
         && defined $flow_cell) {
-        die "Unable to parse run_name properly from $run_name\n";
+        warn "Unable to parse run_name properly from $run_name\n";
+        $machine = ''
     }
     return $machine;
 }
