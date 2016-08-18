@@ -13,8 +13,9 @@ my @anps = Genome::Config::AnalysisProject->get(id => \@anp_ids);
 print join("\t", qw(Sample Analysis_Project Model Build Primary_flowcell Primary_date Primary_machine All_flowcells nLanes nFlowcells Freemix Median_Insert_Size MAD_Insert_Size Mean_Insert_Size SD_Insert_Size GC_Dropout AT_Dropout Flagstat_Duplication_Rate Mean_Coverage Picard_Mismatch_Rate Picard_HQ_Error_Rate Picard_Indel_Rate Read1_Picard_Mismatch_Rate Read1_Picard_HQ_Error_Rate Read1_Picard_Indel_Rate Read2_Picard_Mismatch_Rate Read2_Picard_HQ_Error_Rate Read2_Picard_Indel_Rate Picard_Percent_Reads_Aligned Picard_Percent_Reads_Aligned_In_Pairs Picard_Percent_Adapter Picard_Percent_Chimeras Flagstat_Percentage_Proper_Pair Flagstat_Percentage_Interchromosomal_Pair)), "\n";
 
 for my $anp (@anps) {
-    my @models = Genome::Model->get(analysis_project => $anp, 'config_profile_item.tag_names' => 'production qc') or die "Unable to get a models for ", $anp->name, "\n";
-    for my $model (@models) {
+    #my @models = Genome::Model->get(analysis_project => $anp, 'config_profile_item.tag_names' => 'production qc') or die "Unable to get a models for ", $anp->name, "\n";
+    my $iter = Genome::Model->create_iterator(analysis_project => $anp, subclass_name => 'Genome::Model::SingleSampleGenotype') or die "Unable to get a models for ", $anp->name, "\n";
+    while (my $model = $iter->next) {
         unless($model->last_succeeded_build) {
             next;
         }
