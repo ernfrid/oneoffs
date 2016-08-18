@@ -22,7 +22,7 @@ def main():
 
 def fail_sample(fields):
     reason = list()
-    if float(fields['Mean_Coverage']) < 20:
+    if float(fields['Mean_Coverage']) < 19.5:
         reason.append('Coverage')
     if float(fields['Freemix']) > 0.05:
         reason.append('Freemix')
