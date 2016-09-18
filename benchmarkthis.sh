@@ -1,4 +1,6 @@
-#!/bin/bash -ex
+#!/bin/bash
+
+set -ueox pipefail
 
 times=5
 queue="hall-lab"
@@ -7,7 +9,7 @@ hostname=""
 setup=""
 teardown=""
 
-while getopts ":n:q:J:m:" opt; do
+while getopts ":n:q:J:m:p:e:" opt; do
     case $opt in
         n)
             echo "Running command $OPTARG times" >&2
@@ -60,7 +62,7 @@ initial_dep=""
 
 if [ "$setup" != "" ]; then
     bsub -N -u dlarson@genome.wustl.edu -n $processors -q $queue -m "$hostname" -J ${jobname}.pre bash $setup
-    initial_dep=" -w \"done($jobname.pre_\""
+    initial_dep=" -w done($jobname.pre)"
 fi
 
 #bsub initial job
@@ -72,7 +74,7 @@ for ((i=2;i<=times;i++)); do
 done
 
 if [ "$teardown" != "" ]; then
-    bsub -N -u dlarson@genome.wustl.edu -n $processors -q $queue -m "$hostname" -J ${jobname}.post -w "done($jobname.$prev)" bash $teardown
+    bsub -N -u dlarson@genome.wustl.edu -n $processors -q $queue -m "$hostname" -J ${jobname}.post -w "done($jobname.$times)" bash $teardown
 fi
 
 exit 0
