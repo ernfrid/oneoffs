@@ -10,7 +10,7 @@ use Data::Dumper;
 my @anp_ids = @ARGV;
 my @anps = Genome::Config::AnalysisProject->get(id => \@anp_ids);
 
-print join("\t", qw(Sample Analysis_Project Model Build Primary_flowcell Primary_date Primary_machine All_flowcells nLanes nFlowcells Freemix Median_Insert_Size MAD_Insert_Size Mean_Insert_Size SD_Insert_Size GC_Dropout AT_Dropout Flagstat_Duplication_Rate Mean_Coverage Haploid_Coverage Picard_Mismatch_Rate Picard_HQ_Error_Rate Picard_Indel_Rate Read1_Picard_Mismatch_Rate Read1_Picard_HQ_Error_Rate Read1_Picard_Indel_Rate Read2_Picard_Mismatch_Rate Read2_Picard_HQ_Error_Rate Read2_Picard_Indel_Rate Picard_Percent_Reads_Aligned Picard_Percent_Reads_Aligned_In_Pairs Picard_Percent_Adapter Picard_Percent_Chimeras Flagstat_Percentage_Proper_Pair Flagstat_Percentage_Interchromosomal_Pair)), "\n";
+print join("\t", qw(Sample Analysis_Project Model Build Primary_flowcell Primary_date Primary_machine All_flowcells nLanes nFlowcells Freemix Median_Insert_Size MAD_Insert_Size Mean_Insert_Size SD_Insert_Size GC_Dropout AT_Dropout Flagstat_Duplication_Rate Mean_Coverage Haploid_Coverage Illumina_Coverage Picard_Mismatch_Rate Picard_HQ_Error_Rate Picard_Indel_Rate Read1_Picard_Mismatch_Rate Read1_Picard_HQ_Error_Rate Read1_Picard_Indel_Rate Read2_Picard_Mismatch_Rate Read2_Picard_HQ_Error_Rate Read2_Picard_Indel_Rate Picard_Percent_Reads_Aligned Picard_Percent_Reads_Aligned_In_Pairs Picard_Percent_Adapter Picard_Percent_Chimeras Flagstat_Percentage_Proper_Pair Flagstat_Percentage_Interchromosomal_Pair)), "\n";
 
 for my $anp (@anps) {
     #my @models = Genome::Model->get(analysis_project => $anp, 'config_profile_item.tag_names' => 'production qc') or die "Unable to get a models for ", $anp->name, "\n";
@@ -27,7 +27,7 @@ for my $anp (@anps) {
         my $primary_machine = key_for_flowcell($machines, $primary);
         my $fm = freemix($model);
         my @instrument_data = $model->instrument_data;
-        print join("\t", $model->subject->name, $anp->name, $model->id, $model->last_succeeded_build->id, $primary, $primary_date, $primary_machine, join(",", keys %$flowcells), scalar(@instrument_data), scalar(keys %$flowcells), $fm, insert_size_metrics($model), gc_bias_metrics($model), flagstat_duplication_rate($model), coverage($model), haploid_coverage($model), mismatch_rate_metrics($model), alignment_metrics($model), flagstat_alignment_metrics($model)), "\n";
+        print join("\t", $model->subject->name, $anp->name, $model->id, $model->last_succeeded_build->id, $primary, $primary_date, $primary_machine, join(",", keys %$flowcells), scalar(@instrument_data), scalar(keys %$flowcells), $fm, insert_size_metrics($model), gc_bias_metrics($model), flagstat_duplication_rate($model), coverage($model), haploid_coverage($model), illumina_coverage($model), mismatch_rate_metrics($model), alignment_metrics($model), flagstat_alignment_metrics($model)), "\n";
     }
 }
 
@@ -73,6 +73,13 @@ sub haploid_coverage {
     my ($model) = @_;
     my $metrics = qc_metrics_hash($model) or return undef;
     return ( $metrics->{PAIR}->{PF_ALIGNED_BASES} * ( 1 - _calculate_duplication_rate($model) )) / $metrics->{GENOME_TERRITORY};
+}
+
+sub illumina_coverage {
+    # Calculate coverage as recommended by Illumina's whitepaper here: http://www.illumina.com/content/dam/illumina-marketing/documents/products/technotes/hiseq-x-30x-coverage-technical-note-770-2014-042.pdf
+    my ($model) = @_;
+    my $metrics = qc_metrics_hash($model) or return undef;
+    return $metrics->{'MEAN_COVERAGE'} * ( ( 1 - $metrics->{'PCT_EXC_DUPE'} - $metrics->{'PCT_EXC_OVERLAP'} ) / ( 1 - $metrics->{'PCT_EXC_TOTAL'} ));
 }
 
 sub mismatch_rate_metrics {
