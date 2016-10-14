@@ -1,0 +1,3 @@
+BGZF EOF marker is missing in /dev/stdin
+Exiting due to ERROR:
+	FAIL_IO: Failed to Open /dev/stdin for reading
