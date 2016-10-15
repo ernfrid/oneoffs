@@ -5,42 +5,65 @@ import argparse
 from itertools import ifilter
 
 class ReaderException(Exception):
+    '''
+    Exception class for this script
+    '''
     def __init__(self, value):
         self.value = value
     def __str__(self):
         return repr(self.value)
 
 class StatsReader(object):
+    '''
+    Reader class to read in output from bamutil --stats
+    '''
     def __init__(self, handle):
         self.handle = handle
         self.num_lines = 0
 
     def __iter__(self):
-        '''Read first two lines'''
+        '''
+        Read first three lines
+        '''
         header = [ self.handle.next() for i in xrange(3) ]
         return self
 
     def _validate_header(self, header):
+        '''
+        Validate that the header is as expected
+        '''
         self._validate_first_line(header[0])
         self._validate_second_line(header[1])
         self._validate_header_line(header[2])
 
     @staticmethod
     def _validate_first_line(line):
+        '''
+        Validate the first line is as expected
+        '''
         if not line.startswith('Number of records read = '):
             raise ReaderException('Invalid first line: {0}'.format(line.rstrip()))
     
     @staticmethod
     def _validate_second_line(line):
+        '''
+        Validate the second line is blank
+        '''
         if not line.startswith('\n'):
             raise ReaderException('Non-blank second line: {0}'.format(line.rstrip()))
 
     @staticmethod
     def _validate_header_line(line):
+        '''
+        Validate the header line is as expected
+        '''
         if not line == 'Phred	Count\n':
             raise ReaderException('Invalid header line: {0}'.format(line.rstrip()))
 
     def next(self):
+        '''
+        returns the next line of Phred score, count as a tuple
+        '''
         try:
             line = self.handle.next()
         except StopIteration as e:
@@ -56,6 +79,9 @@ class StatsReader(object):
         return int(phred), int(count)
 
 class BaseCountAccumulator(object):
+    '''
+    Calculate the total number of bases above a minimum base quality
+    '''
     def __init__(self, min_base_quality=0):
         self.min_base_quality = min_base_quality
 
