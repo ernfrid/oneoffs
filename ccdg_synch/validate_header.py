@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import re
 import argparse
 import sys
 
@@ -11,17 +12,28 @@ def create_field_dict(line):
             field_dict[key] = value
     return field_dict
 
+def create_field_set(line):
+    field_set = set()
+    for field in line.rstrip().split('\t'):
+        if not field.startswith('@') and not field.startswith('DT:') and not field.startswith('PI:'):
+            field_set.add(field)
+    return frozenset(field_set)
+
 class ValidateReadgroups(object):
     def __init__(self, readgroupfiles):
         self.invalid_lines = set()
         self.valid_lines = set()
+        self.expected_lines = set()
         for rgfile in readgroupfiles:
             with open(rgfile, 'r') as f:
-                self.expected_lines = { line for line in f.readlines() }
+                for line in f:
+                    self.expected_lines.add(create_field_set(line))
     def __call__(self, line):
-        if line in self.expected_lines:
+        field_set = create_field_set(line)
+        if field_set in self.expected_lines:
             self.valid_lines.add(line)
         else:
+            print line,
             self.invalid_lines.add(line)
 
     def verdict(self):
@@ -73,7 +85,7 @@ class ValidateBwa(object):
 
     def __call__(self, line):
         field_dict = create_field_dict(line)
-        if field_dict['ID'].startswith('bwa') and field_dict['PN'] == 'bwa':
+        if field_dict['ID'].startswith('bwa') and (field_dict['PN'] == 'bwa' or field_dict['PN'] == 'bwamem'):
             self.found_bwa = True
 
             self.all_bwa_had_proper_params = (self.all_bwa_had_proper_params and 
