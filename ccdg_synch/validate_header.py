@@ -1,0 +1,112 @@
+#!/usr/bin/env python
+
+import argparse
+import sys
+
+def create_field_dict(line):
+    field_dict = dict()
+    for field in line.rstrip().split('\t'): 
+        if not field.startswith('@'):
+            key, value = field.split(':', 1)
+            field_dict[key] = value
+    return field_dict
+
+class ValidateReadgroups(object):
+    def __init__(self, readgroupfiles):
+        self.invalid_lines = set()
+        self.valid_lines = set()
+        for rgfile in readgroupfiles:
+            with open(rgfile, 'r') as f:
+                self.expected_lines = { line for line in f.readlines() }
+    def __call__(self, line):
+        if line in self.expected_lines:
+            self.valid_lines.add(line)
+        else:
+            self.invalid_lines.add(line)
+
+    def verdict(self):
+        assert len(self.valid_lines) == len(self.expected_lines), 'Missing expected @RG lines'
+        assert len(self.invalid_lines) == 0, 'Invalid @RG lines found'
+
+class ValidateSq(object):
+    def __init__(self, reference_path):
+        self.invalid_ah = False
+        self.invalid_name = False
+
+        self.expected_names, self.regular_names = self._parse_alt_file(reference_path)
+
+    def _parse_alt_file(self, path):
+        expected_names = set()
+        regular_names = set()
+        with open(path, 'r') as f:
+            for line in f:
+                fields = line.rstrip().split('\t')
+                if line.startswith('@SQ'):
+                    #It's a normal name
+                    sq_dict = create_field_dict(line)
+
+                    expected_names.add(sq_dict['SN'])
+                    regular_names.add(sq_dict['SN'])
+                else:
+                    expected_names.add(fields[0])
+        return expected_names, regular_names
+
+    def __call__(self, line):
+        field_dict = create_field_dict(line)
+        seq_name = field_dict['SN']
+        if seq_name in self.expected_names:
+            has_ah = 'AH' in field_dict
+            if (seq_name in self.regular_names != has_ah):
+                self.invalid_ah = True
+        else:
+            self.invalid_name = True
+
+
+    def verdict(self):
+        assert self.invalid_ah, 'No AH tag found in on the @SQ record of an expected ALT'
+        assert self.invalid_name, 'Unexpected reference name detected in @SQ record'
+
+class ValidateBwa(object):
+    def __init__(self):
+        self.found_bwa = False
+        self.all_bwa_had_proper_params = True
+
+    def __call__(self, line):
+        field_dict = create_field_dict(line)
+        if field_dict['ID'].startswith('bwa') and field_dict['PN'] == 'bwa':
+            self.found_bwa = True
+
+            self.all_bwa_had_proper_params = (self.all_bwa_had_proper_params and 
+                    field_dict['VN'] == '0.7.15-r1140' and
+                    ' -Y ' in field_dict['CL'] and
+                    ' -K 100000000 ' in field_dict['CL'])
+
+    def verdict(self):
+        assert self.found_bwa, 'No bwa @PG entries found'
+        assert self.all_bwa_had_proper_params, 'Improper bwa params (version, -Y or -K)'
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Validate a CCDG CRAM file header')
+    parser.add_argument('readgroupfile', metavar='FILE', type=str, nargs='+', help='path to file containing all expected @RG lines')
+    parser.add_argument('--alt', metavar='FILE', type=str, help='path to reference file .alt to use for determining expected chromosome names and alts')
+    args = parser.parse_args()
+
+    rg_validator = ValidateReadgroups(args.readgroupfile)
+    sq_validator = ValidateSq(args.alt)
+    bwa_validator = ValidateBwa()
+    def noop(x):
+        pass
+
+    validator_dict = {
+            '@SQ': sq_validator,
+            '@PG': bwa_validator,
+            '@RG': rg_validator
+            }
+
+    for line in sys.stdin:
+        v = validator_dict.get(line.split('\t')[0], noop)
+        v(line)
+
+    for validator in validator_dict.values():
+        validator.verdict()
+
