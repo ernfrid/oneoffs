@@ -110,7 +110,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     rg_validator = ValidateReadgroups(args.readgroupfile)
-    sq_validator = ValidateSq(args.alt)
+    sq_validator = ValidateSq(args.ref)
     bwa_validator = ValidateBwa()
     def noop(x):
         pass
