@@ -68,15 +68,16 @@ class ValidateSq(object):
         seq_name = field_dict['SN']
         if seq_name in self.expected_names:
             has_ah = 'AH' in field_dict
-            if (seq_name in self.regular_names != has_ah):
+            is_alt = not seq_name in self.regular_names
+            if (is_alt != has_ah):
                 self.invalid_ah = True
         else:
             self.invalid_name = True
 
 
     def verdict(self):
-        assert self.invalid_ah, 'No AH tag found in on the @SQ record of an expected ALT'
-        assert self.invalid_name, 'Unexpected reference name detected in @SQ record'
+        assert not self.invalid_ah, 'No AH tag found in on the @SQ record of an expected ALT'
+        assert not self.invalid_name, 'Unexpected reference name detected in @SQ record'
 
 class ValidateBwa(object):
     def __init__(self):
