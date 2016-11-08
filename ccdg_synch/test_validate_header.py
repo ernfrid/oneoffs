@@ -40,14 +40,14 @@ class ValidateBwaTests(unittest.TestCase):
 
 class ValidateSqTests(unittest.TestCase):
     def setUp(self):
-        self.alt_file = 'test_data/alt/all_sequences.fa.alt'
-        self.obj = validate_header.ValidateSq(self.alt_file)
+        self.ref_file = 'test_data/ref/all_sequences.fa'
+        self.obj = validate_header.ValidateSq(self.ref_file)
 
     def test_init_and_parse(self):
         expected_names = set(['chr1', 'chr2', 'HLA-DRB1*15:03:01:02', 'HLA-DRB1*16:02:01'])
-        regular_names = set(['chr1', 'chr2'])
+        alt_names = set(['HLA-DRB1*15:03:01:02', 'HLA-DRB1*16:02:01'])
         self.assertEqual(self.obj.expected_names, expected_names)
-        self.assertEqual(self.obj.regular_names, regular_names)
+        self.assertEqual(self.obj.alt_names, alt_names)
 
     def test_valid_non_alt(self):
         valid_non_alt = '@SQ\tLN:2222\tSN:chr2'

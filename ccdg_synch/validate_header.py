@@ -45,33 +45,38 @@ class ValidateSq(object):
         self.invalid_ah = False
         self.invalid_name = False
 
-        self.expected_names, self.regular_names = self._parse_alt_file(reference_path)
+        self.expected_names = self._parse_index_file(reference_path + '.fai')
+        self.alt_names = self._parse_alt_file(reference_path + '.alt')
 
-    def _parse_alt_file(self, path):
+    def _parse_index_file(self, path):
         expected_names = set()
-        regular_names = set()
         with open(path, 'r') as f:
             for line in f:
                 fields = line.rstrip().split('\t')
-                if line.startswith('@SQ'):
-                    #It's a normal name
-                    sq_dict = create_field_dict(line)
+                expected_names.add(fields[0])
+        return expected_names
 
-                    expected_names.add(sq_dict['SN'])
-                    regular_names.add(sq_dict['SN'])
-                else:
-                    expected_names.add(fields[0])
-        return expected_names, regular_names
+    def _parse_alt_file(self, path):
+        alt_names = set()
+        with open(path, 'r') as f:
+            for line in f:
+                fields = line.rstrip().split('\t')
+                if not line.startswith('@SQ'):
+                    #It's not a normal name
+                    alt_names.add(fields[0])
+        return alt_names
 
     def __call__(self, line):
         field_dict = create_field_dict(line)
         seq_name = field_dict['SN']
         if seq_name in self.expected_names:
             has_ah = 'AH' in field_dict
-            is_alt = not seq_name in self.regular_names
+            is_alt = seq_name in self.alt_names
             if (is_alt != has_ah):
+                print 'Invalid AH tag for reference name: {0}'.format(seq_name),
                 self.invalid_ah = True
         else:
+            print 'Unexpected reference name: {0}'.format(seq_name),
             self.invalid_name = True
 
 
@@ -101,7 +106,7 @@ class ValidateBwa(object):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Validate a CCDG CRAM file header')
     parser.add_argument('readgroupfile', metavar='FILE', type=str, nargs='+', help='path to file containing all expected @RG lines')
-    parser.add_argument('--alt', metavar='FILE', type=str, help='path to reference file .alt to use for determining expected chromosome names and alts')
+    parser.add_argument('--ref', metavar='FILE', type=str, help='path to reference file to use for determining expected chromosome names and alts. Needs .alt and .fai file')
     args = parser.parse_args()
 
     rg_validator = ValidateReadgroups(args.readgroupfile)
@@ -120,6 +125,11 @@ if __name__ == '__main__':
         v = validator_dict.get(line.split('\t')[0], noop)
         v(line)
 
-    for validator in validator_dict.values():
-        validator.verdict()
+    try:
+        for validator in validator_dict.values():
+            validator.verdict()
+    except AssertionError as e:
+        sys.stderr.write(str(e))
+        sys.stderr.write('\n')
+        sys.exit(1)
 
