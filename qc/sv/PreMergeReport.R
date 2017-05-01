@@ -43,6 +43,6 @@ plot_10kb_size_fingerprint <- function(count_data) {
     facet_grid(Type ~ Cohort, scales="free_x", space="free_x") + 
     scale_y_discrete(breaks=c(0, 100, 300, 1000, 10000)) + 
     scale_x_discrete(breaks=NULL) +
-    theme(panel.margin=unit(0.0, "lines"), axis.text=element_text(colour="black"), strip.text.x=element_text(size=8, angle=90)) 
+    theme(panel.margin.x=unit(0.0, "lines"), axis.text=element_text(colour="black"), strip.text.x=element_text(size=8, angle=90)) 
   print(g)
 }
