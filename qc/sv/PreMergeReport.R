@@ -10,7 +10,7 @@ summarize_samples <- function(raw_counts) {
 
 summarize_lengths_10kb <- function(raw_counts) {
   per_length_counts = raw_counts %>% filter(abs(Length) < 10000) %>% mutate(Length=as.factor(signif(abs(Length),2))) %>% group_by(Cohort, Sample, Type, Length) %>% summarize(Count=n())
-  per_length_counts$Sample <- factor(per_length_counts$Sample, levels=unique(as.character(sample(per_length_counts$Sample))) )
+  per_length_counts$Sample <- factor(per_length_counts$Sample, levels=unique(as.character(per_length_counts$Sample)) )
   return(per_length_counts)
 }
 
