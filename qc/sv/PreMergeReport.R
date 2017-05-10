@@ -14,7 +14,7 @@ summarize_lengths_10kb <- function(raw_counts) {
   return(per_length_counts)
 }
 
-plot_by_sample_counts <- function(count_data, title_string="Number of SVs per sample by type") {
+plot_by_sample_counts <- function(count_data, title_string="Number of SVs per sample") {
   # set colors
   col.list=c("#e41a1c", "#377eb8", "#4daf4a", "#999999")
   
@@ -22,7 +22,7 @@ plot_by_sample_counts <- function(count_data, title_string="Number of SVs per sa
   print(g)
 }
 
-plot_by_sample_counts_by_type <- function(count_data, title_string="Number of SVs per sample by type") {
+plot_by_sample_counts_by_type <- function(count_data, title_string="Number of SVs per sample") {
   # set colors
   col.list=c("#e41a1c", "#377eb8", "#4daf4a", "#999999")
   
@@ -30,7 +30,7 @@ plot_by_sample_counts_by_type <- function(count_data, title_string="Number of SV
   print(g)
 }
 
-plot_by_sample_hethom_by_type <- function(count_data, title_string="Number of SVs per sample by type") {
+plot_by_sample_hethom_by_type <- function(count_data, title_string="Het:Hom Ratio per sample") {
   # set colors
   col.list=c("#e41a1c", "#377eb8", "#4daf4a", "#999999")
   
