@@ -26,7 +26,9 @@ if __name__ == '__main__':
             print line,
         elif line.startswith('#'):
             print '##INFO=<ID=AB,Number=1,Type=Float,Description="Per site allele balance">'
-            print '##INFO=<ID=AB_HOM,Number=1,Type=Float,Description="Per site allele balance, hom alts included">'
+            print '##INFO=<ID=AB_DP,Number=1,Type=Integer,Description="Depth at heterozygous sites">' 
+            print '##INFO=<ID=AB_ALT,Number=1,Type=Float,Description="Per site allele balance, hom alts included">'
+            print '##INFO=<ID=AB_ALT_DP,Number=1,Type=Integer,Description="Depth at heterozygous and homozygous variant sites">'
             print line,
         else:
             fields = line.rstrip().split('\t')
@@ -42,17 +44,15 @@ if __name__ == '__main__':
                 except KeyError:
                     pass
 
-            reftotal = stats['0/1'].ref + 0.5 * stats['1/1'].ref
+            reftotal = stats['0/1'].ref + 0.5 * stats['1/1'].alt + stats['1/1'].ref
             alttotal = stats['0/1'].alt + 0.5 * stats['1/1'].alt
 
             ab_info_fields = (
                     fields[7],
                     'AB={0}'.format(calculate_balance(stats['0/1'].ref, stats['0/1'].alt)),
-                    'AB_HOM={0}'.format(calculate_balance(reftotal, alttotal))
+                    'AB_DP={0}'.format(stats['0/1'].ref + stats['0/1'].alt),
+                    'AB_ALT={0}'.format(calculate_balance(reftotal, alttotal)),
+                    'AB_ALT_DP={0}'.format(int(reftotal + alttotal))
                     )
             fields[7] = ';'.join( ab_info_fields )
             print '\t'.join(fields)
-
-
-
-
