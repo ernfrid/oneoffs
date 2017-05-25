@@ -10,5 +10,6 @@ unset vcfs[0]
 echo -e "Cohort\tSample\tGenotype\tType\tLength"
 
 for vcf in "${vcfs[@]}"; do
-    $BCFTOOLS query -e 'INFO/SECONDARY=1 || FORMAT/GT="0/0" || FORMAT/GT="./."' -f "[${cohort}\t%SAMPLE\t%GT\t%INFO/SVTYPE\t%INFO/SVLEN\n]" $vcf
+    $BCFTOOLS view -f .,PASS $vcf \
+        | $BCFTOOLS query -e 'INFO/SECONDARY=1' -f "[${cohort}\t%SAMPLE\t%GT\t%INFO/SVTYPE\t%INFO/SVLEN\n]" | grep -v '[0.]\/[0.]'
 done
