@@ -15,7 +15,7 @@ def create_field_dict(line):
 def create_field_set(line):
     field_set = set()
     for field in line.rstrip().split('\t'):
-        if not field.startswith('@') and not field.startswith('DT:') and not field.startswith('PI:'):
+        if not field.startswith('@') and not field.startswith('DT:') and not field.startswith('PI:') and not field.startswith('DS:'):
             field_set.add(field)
     return frozenset(field_set)
 
@@ -73,10 +73,10 @@ class ValidateSq(object):
             has_ah = 'AH' in field_dict
             is_alt = seq_name in self.alt_names
             if (is_alt != has_ah):
-                print 'Invalid AH tag for reference name: {0}'.format(seq_name),
+                print 'Invalid AH tag for reference name: {0}'.format(seq_name)
                 self.invalid_ah = True
         else:
-            print 'Unexpected reference name: {0}'.format(seq_name),
+            print 'Unexpected reference name: {0}'.format(seq_name)
             self.invalid_name = True
 
 
@@ -125,11 +125,13 @@ if __name__ == '__main__':
         v = validator_dict.get(line.split('\t')[0], noop)
         v(line)
 
-    try:
-        for validator in validator_dict.values():
+    rv = 0
+    for validator in validator_dict.values():
+        try:
             validator.verdict()
-    except AssertionError as e:
-        sys.stderr.write(str(e))
-        sys.stderr.write('\n')
-        sys.exit(1)
+        except AssertionError as e:
+            rv = 1
+            sys.stderr.write(str(e))
+            sys.stderr.write('\n')
 
+    sys.exit(rv)
