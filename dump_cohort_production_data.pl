@@ -13,7 +13,7 @@ my @anps = Genome::Config::AnalysisProject->get(id => \@anp_ids);
 my @raw_breadth_values = qw( 5 10 15 20 25 30 40 50 60 70 80 90 100 );
 my $coverage_breadth_header = join("\t", map { "Pct_${_}X" } @raw_breadth_values);
 
-print join("\t", qw(Sample Analysis_Project Model Build Primary_flowcell Primary_date Primary_machine All_flowcells nLanes nFlowcells Freemix Median_Insert_Size MAD_Insert_Size Mean_Insert_Size SD_Insert_Size GC_Dropout AT_Dropout Flagstat_Duplication_Rate Mean_Coverage Haploid_Coverage New_Haploid_Coverage Illumina_Coverage Picard_Mismatch_Rate Picard_HQ_Error_Rate Picard_Indel_Rate Read1_Picard_Mismatch_Rate Read1_Picard_HQ_Error_Rate Read1_Picard_Indel_Rate Read2_Picard_Mismatch_Rate Read2_Picard_HQ_Error_Rate Read2_Picard_Indel_Rate Picard_Percent_Reads_Aligned Picard_Percent_Reads_Aligned_In_Pairs Picard_Percent_Adapter Picard_Percent_Chimeras Flagstat_Percentage_Proper_Pair Flagstat_Percentage_Interchromosomal_Pair), $coverage_breadth_header), "\n";
+print join("\t", qw(Sample Case_Control Analysis_Project Model Build Primary_flowcell Primary_date Primary_machine All_flowcells nLanes nFlowcells Freemix Median_Insert_Size MAD_Insert_Size Mean_Insert_Size SD_Insert_Size GC_Dropout AT_Dropout Flagstat_Duplication_Rate Mean_Coverage Haploid_Coverage New_Haploid_Coverage Illumina_Coverage Picard_Mismatch_Rate Picard_HQ_Error_Rate Picard_Indel_Rate Read1_Picard_Mismatch_Rate Read1_Picard_HQ_Error_Rate Read1_Picard_Indel_Rate Read2_Picard_Mismatch_Rate Read2_Picard_HQ_Error_Rate Read2_Picard_Indel_Rate Picard_Percent_Reads_Aligned Picard_Percent_Reads_Aligned_In_Pairs Picard_Percent_Adapter Picard_Percent_Chimeras Flagstat_Percentage_Proper_Pair Flagstat_Percentage_Interchromosomal_Pair), $coverage_breadth_header), "\n";
 
 for my $anp (@anps) {
     #my @models = Genome::Model->get(analysis_project => $anp, 'config_profile_item.tag_names' => 'production qc') or die "Unable to get a models for ", $anp->name, "\n";
@@ -29,8 +29,29 @@ for my $anp (@anps) {
         my $machines = machines($model);
         my $primary_machine = key_for_flowcell($machines, $primary);
         my $fm = freemix($model);
-        my @instrument_data = $model->instrument_data;
-        print join("\t", $model->subject->name, $anp->name, $model->id, $model->last_succeeded_build->id, $primary, $primary_date, $primary_machine, join(",", keys %$flowcells), scalar(@instrument_data), scalar(keys %$flowcells), $fm, insert_size_metrics($model), gc_bias_metrics($model), flagstat_duplication_rate($model), coverage($model), haploid_coverage($model), new_haploid_coverage($model), illumina_coverage($model), mismatch_rate_metrics($model), alignment_metrics($model), flagstat_alignment_metrics($model), breadth_metrics($model)), "\n";
+        my @instrument_data = $model->last_succeeded_build->instrument_data;
+        print join("\t", $model->subject->name, case_control_status($model), $anp->name, $model->id, $model->last_succeeded_build->id, $primary, $primary_date, $primary_machine, join(",", keys %$flowcells), scalar(@instrument_data), scalar(keys %$flowcells), $fm, insert_size_metrics($model), gc_bias_metrics($model), flagstat_duplication_rate($model), coverage($model), haploid_coverage($model), new_haploid_coverage($model), illumina_coverage($model), mismatch_rate_metrics($model), alignment_metrics($model), flagstat_alignment_metrics($model), breadth_metrics($model)), "\n";
+    }
+}
+
+sub case_control_status {
+    my ($model) = @_;
+    my $sample = $model->subject;
+    my %attributes = map { $_->attribute_label => $_->attribute_value } $sample->attributes;
+    # NOTE Not sure if this will be available on all samples or not. Or if it will always be "case_control_status"
+    # We will report value if there, otherwise NA
+    my $case_control_status = $attributes{'case_control_status'};
+    if (defined $case_control_status) {
+        return $case_control_status;
+    }
+    else {
+        $case_control_status = $attributes{'ccdg_case_control_status'};
+        if (defined $case_control_status) {
+            return $case_control_status;
+        }
+        else {
+            return 'NA';
+        }
     }
 }
 
