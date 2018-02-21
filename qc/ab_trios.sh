@@ -10,9 +10,9 @@ MOM=$4
 countfile=$5
 
 zcat $INVCF \
+| python ~/src/oneoffs/add_ab_both.py \
 | /gscmnt/gc2719/halllab/bin/bcftools view -s ${KID},${DAD},${MOM} --no-update - \
 | /gscmnt/gc2719/halllab/bin/bcftools view -g ^miss --no-update - \
-| python ~/src/oneoffs/add_ab_both.py \
 | /gscmnt/gc2719/halllab/bin/bcftools query -f '%TYPE\t%FILTER\t%INFO/AF\t%INFO/AC\t%INFO/AB\t%INFO/AB_HOM\t%INFO/VQSLOD[\t%GT]\n' \
 | grep "/1"  \
 | python ~/src/oneoffs/qc/classify_mie.py \

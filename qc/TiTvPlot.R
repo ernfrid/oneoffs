@@ -13,6 +13,7 @@ read_output <- function(file) {
     x[x$AF>=0.05,]$AFClass <- "Common"
     x[x$AC==1,]$AFClass <- "Singleton"
     x[x$AC==2,]$AFClass <- "Doubleton"
+    x$AFClass <- factor(x$AFClass, levels=c("Common", "Low Frequency", "Rare", "Doubleton", "Singleton"))
     return(x)
 }
 
@@ -20,7 +21,6 @@ summarize_titv <- function(y) {
     y %>% group_by(Filter, AFClass, VQSLOD) %>% summarize(Ti=sum(Type=="Transition"), Tv=sum(Type=="Transversion")) %>% mutate(Ti=ifelse(is.na(Ti),0,Ti), Tv=ifelse(is.na(Tv),0,Tv)) %>% mutate(TiTv=Ti/Tv) -> z
     return(z)
 }
-
 
 plot_titv_summary <- function(z) {
     g <- ggplot(z, aes(VQSLOD, TiTv, col=AFClass)) + facet_wrap(~ Filter) + geom_point(aes(size=Ti+Tv))

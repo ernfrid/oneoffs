@@ -8,11 +8,12 @@ read_output <- function(file) {
     x[x$VQSLOD> (15),]$VQSLOD <- 15
     x$VQSLOD <- round(x$VQSLOD, 1)
     x$AFClass <- NA
-    x[x$AF<0.01,]$AFClass <- "Very Rare"
-    x[x$AF>=0.01&x$AF<0.05,]$AFClass <- "Rare"
+    x[x$AF<0.01,]$AFClass <- "Rare"
+    x[x$AF>=0.01&x$AF<0.05,]$AFClass <- "Low Frequency"
     x[x$AF>=0.05,]$AFClass <- "Common"
     x[x$AC==1,]$AFClass <- "Singleton"
     x[x$AC==2,]$AFClass <- "Doubleton"
+    x$AFClass <- factor(x$AFClass, levels=c("Common", "Low Frequency", "Rare", "Doubleton", "Singleton"))
     return(x)
 }
 
